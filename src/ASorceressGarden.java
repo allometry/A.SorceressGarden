@@ -4,16 +4,22 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.RenderingHints;
+import java.util.ArrayList;
 
 import org.rsbot.event.listeners.PaintListener;
 import org.rsbot.script.Script;
 import org.rsbot.script.ScriptManifest;
 import org.rsbot.script.wrappers.RSArea;
 import org.rsbot.script.wrappers.RSNPC;
+import org.rsbot.script.wrappers.RSObject;
 import org.rsbot.script.wrappers.RSTile;
 
+import com.sun.org.apache.bcel.internal.generic.NEW;
+
 @ScriptManifest(authors = { "Allometry" }, keywords = "Thieving Sourceress Garden", name = "A. Sorceress Garden", version = 0.1, description = "Start, all options are in GUI.")
-public class ASorceressGarden extends Script implements PaintListener {	
+public class ASorceressGarden extends Script implements PaintListener {
+	private boolean isRunning = false;
+	
 	private class Sequence {
 		private Elemental primaryElemental;
 		private Elemental dependentElemental;
@@ -217,6 +223,8 @@ public class ASorceressGarden extends Script implements PaintListener {
 	private RSArea bankingArea = new RSArea(new RSTile(3269, 3161), new RSTile(3272, 3173));
 	private RSArea gardenLobbyArea = new RSArea(new RSTile(2903, 5463), new RSTile(2920,5480));
 	
+	private Sequence currentSequence;
+	
 	private String apprenticeAction = "Teleport";
 	private String broomstickAction = "Sorceress's Garden";
 	private String fountainAction = "Drink-from";
@@ -226,7 +234,7 @@ public class ASorceressGarden extends Script implements PaintListener {
 	/*
 	 * Autumn Sequence
 	 */
-	private int autumnGateObject = 21731;
+	private int autumnGateObjectID = 21731;
 	private int autumnSqirkTreeObject = 21768;
 	private int autumnSqirkItem = 10846;
 	
@@ -262,7 +270,24 @@ public class ASorceressGarden extends Script implements PaintListener {
 	private Elemental autumnElementalSequence6;
 	private Sequence autumnSequence6;
 	
-	private Sequence[] autumnSequence = { autumnSequence1, autumnSequence2, autumnSequence3, autumnSequence4, autumnSequence5, autumnSequence6 };
+	private ArrayList<Sequence> autumnSequence;
+	
+	private enum State {
+		startup("Starting..."),
+		openAutumnGate("Opening Autumn Gate"),
+		beginAutumnSequence("Beginning Sequence"),
+		runAutumnSequence("Running Autumn Sequence");
+		
+		private String message;
+		State(String message) {
+			this.message = message;
+		}
+		
+		public String getMessage() {
+			return message;
+		}
+	}
+	private State state = State.startup;
 	
 	@Override
 	public boolean onStart() {
@@ -308,6 +333,14 @@ public class ASorceressGarden extends Script implements PaintListener {
 		autumnElementalSequence6 = new Elemental(5538, 0, new RSArea(new RSTile(2911,5455),new RSTile(2916,5455)));
 		autumnSequence6 = new Sequence(autumnPlayerSequence6Start, autumnPlayerSequence6End, autumnElementalSequence6);
 		
+		autumnSequence = new ArrayList<Sequence>();
+		autumnSequence.add(autumnSequence1);
+		autumnSequence.add(autumnSequence2);
+		autumnSequence.add(autumnSequence3);
+		autumnSequence.add(autumnSequence4);
+		autumnSequence.add(autumnSequence5);
+		autumnSequence.add(autumnSequence6);
+		
 		return true;
 	}
 	
@@ -327,6 +360,53 @@ public class ASorceressGarden extends Script implements PaintListener {
 		 * 
 		 * If the player is in the Sq'irk Tree area, pick the fruit and Restart loop.
 		 */
+		updateState();
+		log("trying");
+		try {
+			switch(state) {
+				case openAutumnGate:
+					RSObject autumnGateObject = objects.getNearest(autumnGateObjectID);
+					
+					if(autumnGateObject != null) {
+						if(autumnGateObject.isOnScreen()) {
+							do {
+								if(!getMyPlayer().isMoving()) {
+									autumnGateObject.doClick();
+									
+									sleep(random(1700, 2000));
+									
+									updateState();
+								}
+							} while(state.equals(State.openAutumnGate));
+						} else {
+							camera.turnToObject(autumnGateObject);
+						}
+					}
+				break;
+				
+				case beginAutumnSequence:					
+					if(!getMyPlayer().isMoving()) {
+						currentSequence = retrieveProperSequence(autumnSequence);
+						
+						log(currentSequence.getPlayerStart().getPlayerTile().toString());
+						
+						walking.walkTileOnScreen(currentSequence.getPlayerStart().getPlayerTile());
+					}
+				break;
+				
+				case runAutumnSequence:
+					if(!getMyPlayer().isMoving()) {
+						currentSequence = retrieveProperSequence(autumnSequence);
+						
+						if(currentSequence.canPlayerGoToEnd())
+							walking.walkTileOnScreen(currentSequence.getPlayerEnd().getPlayerTile());
+					}
+				break;
+			}
+		} catch(Exception e) {
+			
+		}
+		
 		return 1;
 	}
 	
@@ -338,50 +418,44 @@ public class ASorceressGarden extends Script implements PaintListener {
 			
 			g.setColor(Color.black);
 			g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
-			g.drawString(npcs.getNearest(5538).getLocation().toString() + " (" + npcs.getNearest(5538).getOrientation() + ")",15, 65);
+			g.drawString(": " + state.getMessage(),15, 65);
 			
-			if(getMyPlayer().getLocation().equals(autumnSequence6.getPlayerStart().getPlayerTile()) && autumnSequence6.canPlayerGoToEnd()) {
-				RSTile t;
-				if(autumnSequence6.getPlayerEnd().getPlayerArea() == null)
-					t = autumnSequence6.getPlayerEnd().getPlayerTile();
-				else
-					t = autumnSequence6.getPlayerEnd().getPlayerArea().getTileArray()[random(0, autumnSequence6.getPlayerEnd().getPlayerArea().getTileArray().length)];
-				
-				//Temporary tile highlight code used for debugging.
-				//Kindly borrowed from GodlessFisher, by Enfilade.
-				Point[] points = new Point[12];
+			RSTile t = currentSequence.getPlayerEnd().getPlayerTile();
+			
+			//Temporary tile highlight code used for debugging.
+			//Kindly borrowed from GodlessFisher, by Enfilade.
+			Point[] points = new Point[12];
 
-		        points[0] = calc.tileToScreen(t, 0, 0.75, 0);
-		        points[1] = calc.tileToScreen(t, 0, 1, 0);
-		        points[2] = calc.tileToScreen(t, 0.25, 0.99, 0);
+	        points[0] = calc.tileToScreen(t, 0, 0.75, 0);
+	        points[1] = calc.tileToScreen(t, 0, 1, 0);
+	        points[2] = calc.tileToScreen(t, 0.25, 0.99, 0);
 
-		        points[3] = calc.tileToScreen(t, 0.75, 0.99, 0);
-		        points[4] = calc.tileToScreen(t, 0.99, 0.99, 0);
-		        points[5] = calc.tileToScreen(t, 0.99, 0.75, 0);
+	        points[3] = calc.tileToScreen(t, 0.75, 0.99, 0);
+	        points[4] = calc.tileToScreen(t, 0.99, 0.99, 0);
+	        points[5] = calc.tileToScreen(t, 0.99, 0.75, 0);
 
-		        points[6] = calc.tileToScreen(t, 0.99, 0.25, 0);
-		        points[7] = calc.tileToScreen(t, 0.99, 0, 0);
-		        points[8] = calc.tileToScreen(t, 0.75, 0, 0);
+	        points[6] = calc.tileToScreen(t, 0.99, 0.25, 0);
+	        points[7] = calc.tileToScreen(t, 0.99, 0, 0);
+	        points[8] = calc.tileToScreen(t, 0.75, 0, 0);
 
-		        points[9] = calc.tileToScreen(t, 0.25, 0, 0);
-		        points[10] = calc.tileToScreen(t, 0, 0, 0);
-		        points[11] = calc.tileToScreen(t, 0, 0.25, 0);
+	        points[9] = calc.tileToScreen(t, 0.25, 0, 0);
+	        points[10] = calc.tileToScreen(t, 0, 0, 0);
+	        points[11] = calc.tileToScreen(t, 0, 0.25, 0);
 
-		        g.setColor(Color.BLACK);
-		        for(int i = 0; i < 12; i += 3) {
-		            g.drawLine(points[i].x, points[i].y, points[i+1].x, points[i+1].y);
-		            g.drawLine(points[i+1].x, points[i+1].y, points[i+2].x, points[i+2].y);
-		        }
+	        g.setColor(Color.BLACK);
+	        for(int i = 0; i < 12; i += 3) {
+	            g.drawLine(points[i].x, points[i].y, points[i+1].x, points[i+1].y);
+	            g.drawLine(points[i+1].x, points[i+1].y, points[i+2].x, points[i+2].y);
+	        }
 
-		        points[0] = calc.tileToScreen(t, 0.40, 0.5, 0);
-		        points[1] = calc.tileToScreen(t, 0.60, 0.5, 0);
-		        points[2] = calc.tileToScreen(t, 0.5, 0.40, 0);
-		        points[3] = calc.tileToScreen(t, 0.5, 0.60, 0);
+	        points[0] = calc.tileToScreen(t, 0.40, 0.5, 0);
+	        points[1] = calc.tileToScreen(t, 0.60, 0.5, 0);
+	        points[2] = calc.tileToScreen(t, 0.5, 0.40, 0);
+	        points[3] = calc.tileToScreen(t, 0.5, 0.60, 0);
 
-		        g.setColor(Color.RED);
-		        g.drawLine(points[0].x, points[0].y, points[1].x, points[1].y);
-		        g.drawLine(points[2].x, points[2].y, points[3].x, points[3].y);
-			}	
+	        g.setColor(Color.RED);
+	        g.drawLine(points[0].x, points[0].y, points[1].x, points[1].y);
+	        g.drawLine(points[2].x, points[2].y, points[3].x, points[3].y);
 		} catch(Exception e) {
 			
 		}
@@ -392,7 +466,7 @@ public class ASorceressGarden extends Script implements PaintListener {
 		return ;
 	}
 	
-	public Sequence retrieveProperSequence(Sequence[] sequences) {
+	public Sequence retrieveProperSequence(ArrayList<Sequence> sequences) {
 		for (Sequence sequence : sequences)
 			if(sequence.getPlayerStart().getPlayerArea() == null)
 				if(sequence.getPlayerStart().getPlayerTile().equals(getMyPlayer().getLocation()))
@@ -401,6 +475,22 @@ public class ASorceressGarden extends Script implements PaintListener {
 				if(sequence.getPlayerStart().getPlayerArea().contains(getMyPlayer().getLocation()))
 					return sequence;
 		
-		return null;
+		return sequences.get(0);
+	}
+	
+	public void updateState() {
+		if(inventory.isFull()) {
+			
+		} else {
+			if(gardenLobbyArea.contains(getMyPlayer().getLocation())) {
+				state = State.openAutumnGate;
+			} else {
+				if(retrieveProperSequence(autumnSequence).equals(autumnSequence.get(0))) {
+					state = State.beginAutumnSequence;
+				} else {
+					state = State.runAutumnSequence;
+				}
+			}
+		}
 	}
 }
