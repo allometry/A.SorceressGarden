@@ -8,18 +8,16 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.util.ArrayList;
 
+import org.rsbot.event.events.MessageEvent;
+import org.rsbot.event.listeners.MessageListener;
 import org.rsbot.event.listeners.PaintListener;
 import org.rsbot.script.Script;
 import org.rsbot.script.ScriptManifest;
 import org.rsbot.script.wrappers.RSArea;
-import org.rsbot.script.wrappers.RSNPC;
-import org.rsbot.script.wrappers.RSObject;
 import org.rsbot.script.wrappers.RSTile;
 
-import com.sun.org.apache.bcel.internal.generic.NEW;
-
 @ScriptManifest(authors = { "Allometry" }, keywords = "Thieving Sourceress Garden", name = "A. Sorceress Garden", version = 0.1, description = "Start, all options are in GUI.")
-public class ASorceressGarden extends Script implements PaintListener {
+public class ASorceressGarden extends Script implements MessageListener, PaintListener {
 	public class Act {
 		public Actor actor = null;
 		public ArrayList<Elemental> primaryElemental = null;
@@ -35,16 +33,22 @@ public class ASorceressGarden extends Script implements PaintListener {
 			
 			if(primaryElemental.isEmpty() && secondaryElemental.isEmpty()) return true;
 			
-			for(Elemental primaryElement : primaryElemental)
-				if(primaryElement.isElementalLookingAway() && primaryElement.isElementSafe())
+			for(Elemental primaryElement : primaryElemental) {
+				if(primaryElement.isElementalLookingAway() && primaryElement.isElementSafe()) {
 					primaryElementalIsSafe = true;
+					break;
+				}
+			}
 			
 			if(secondaryElemental.isEmpty()) {
 				secondaryElementalIsSafe = true;
 			} else {
-				for(Elemental secondaryElement : secondaryElemental)
-					if(secondaryElement.isElementalLookingAway() && secondaryElement.isElementSafe())
+				for(Elemental secondaryElement : secondaryElemental) {
+					if(secondaryElement.isElementalLookingAway() && secondaryElement.isElementSafe()) {
 						secondaryElementalIsSafe = true;
+						break;
+					}
+				}
 			}
 			
 			if(secondaryElemental.isEmpty())
@@ -304,7 +308,7 @@ public class ASorceressGarden extends Script implements PaintListener {
 		
 		elemental35.elementalAngle = 0;
 		elemental35.elementalNPCID = 5535;
-		elemental35.elementalArea = new RSArea(new RSTile(2889, 5449), new RSTile(2902, 5449));
+		elemental35.elementalArea = new RSArea(new RSTile(2889, 5449), new RSTile(2901, 5449));
 		
 		act5.actor = actor5;
 		act5.primaryElemental.add(elemental25);
@@ -314,38 +318,66 @@ public class ASorceressGarden extends Script implements PaintListener {
 		//Safe Spot 5 to Safe Spot 6, 4th & 5th Autumn Elemental
 		Act act6 = new Act();
 		Actor actor6 = new Actor();
-		Elemental elemental46 = new Elemental();
+		Elemental elemental461 = new Elemental();
+		Elemental elemental462 = new Elemental();
+		Elemental elemental463 = new Elemental();
 		Elemental elemental56 = new Elemental();
 		
-		actor6.actorStartTile = new RSTile(2901, 5451);
-		actor6.actorEndTile = new RSTile(2903, 5450);
+		actor6.actorStartTile = new RSTile(2903, 5450);
+		actor6.actorEndTile = new RSTile(2908, 5456);
 		
-		elemental46.elementalAngle = 89;
-		elemental46.elementalNPCID = 5534;
-		elemental46.elementalArea = new RSArea(new RSTile(2900, 5450), new RSTile(2900, 5454));
+		elemental461.elementalAngle = 89;
+		elemental461.elementalNPCID = 5536;
+		elemental461.elementalArea = new RSArea(new RSTile(2902, 5453), new RSTile(2903, 5455));
+		
+		elemental462.elementalAngle = 0;
+		elemental462.elementalNPCID = 5536;
+		elemental462.elementalArea = new RSArea(new RSTile(2903, 5455), new RSTile(2903, 5455));
+		
+		elemental463.elementalAngle = 270;
+		elemental463.elementalNPCID = 5536;
+		elemental463.elementalArea = new RSArea(new RSTile(2905, 5453), new RSTile(2905, 5455));
 		
 		elemental56.elementalAngle = 0;
-		elemental56.elementalNPCID = 5535;
-		elemental56.elementalArea = new RSArea(new RSTile(2889, 5449), new RSTile(2903, 5449));
+		elemental56.elementalNPCID = 5537;
+		elemental56.elementalArea = new RSArea(new RSTile(2904, 5457), new RSTile(2908, 5457));
 		
 		act6.actor = actor6;
-		act6.primaryElemental.add(elemental46);
+		act6.primaryElemental.add(elemental461);
+		act6.primaryElemental.add(elemental462);
+		act6.primaryElemental.add(elemental463);
 		act6.secondaryElemental.add(elemental56);
-		autumnGarden.acts.add(act5);
+		autumnGarden.acts.add(act6);
+		
+		//Safe Spot 1 to Safe Spot 2, 6th Autumn Elemental
+		Act act7 = new Act();
+		Actor actor7 = new Actor();
+		Elemental elemental67 = new Elemental();
+		
+		actor7.actorStartTile = new RSTile(2908, 5456);
+		actor7.actorEndTile = autumnSqirkTree.getNearestTile(new RSTile(2908, 5456));
+		
+		elemental67.elementalAngle = 0;
+		elemental67.elementalNPCID = 5538;
+		elemental67.elementalArea = new RSArea(new RSTile(2911, 5455), new RSTile(2916, 5455));
+		
+		act7.actor = actor7;
+		act7.primaryElemental.add(elemental67);
+		autumnGarden.acts.add(act7);
 		
 		/*
 		 * //Autumn Elemental 2 & 3
-		autumnPlayerSequence4Start = new Actor(new RSTile(2901,5451));
-		autumnPlayerSequence4End = new Actor(new RSTile(2903,5450));
-		autumnElementalSequence4Primary = new Elemental(5534, 89, new RSArea(new RSTile(2900,5450),new RSTile(2908,5454)));
-		autumnElementalSequence4Dependent = new Elemental(5535, 0, new RSArea(new RSTile(2889,5449),new RSTile(2903,5449)));
-		autumnSequence4 = new Sequence(autumnPlayerSequence4Start, autumnPlayerSequence4End, autumnElementalSequence4Primary, autumnElementalSequence4Dependent);
+		autumnPlayerSequence6Start = new Actor(new RSTile(2908,5456));
+		autumnPlayerSequence6End = new Actor(new RSArea(new RSTile(2909,5448), new RSTile(2917,5453)));
+		autumnElementalSequence6 = new Elemental(5538, 0, new RSArea(new RSTile(2911,5455),new RSTile(2916,5455)));
+		autumnSequence6 = new Sequence(autumnPlayerSequence6Start, autumnPlayerSequence6End, autumnElementalSequence6);
 		 */
 		
 		return true;
 	}
 	
 	Act nowPlaying;
+	boolean havePickedAutumnFruit = false;
 	
 	@Override
 	public int loop() {
@@ -363,36 +395,60 @@ public class ASorceressGarden extends Script implements PaintListener {
 		 * 
 		 * If the player is in the Sq'irk Tree area, pick the fruit and Restart loop.
 		 */
-		
 		if(getMyPlayer().isMoving()) return 1;
 		
-		if(gardenLobbyArea.contains(getMyPlayer().getLocation())) {
-			if(objects.getNearest(autumnGateObjectID).isOnScreen()) {
-				objects.getNearest(autumnGateObjectID).doClick();
-				return random(1700, 2500);
+		if(inventory.isFull()) {
+			if(gardenLobbyArea.contains(getMyPlayer().getLocation())) {
+				if(game.getCurrentTab() != game.TAB_EQUIPMENT) {
+					game.openTab(game.TAB_EQUIPMENT);
+				}
+				
+				equipment.getItem(equipment.RING).doAction("Teleport");
+				do {
+					sleep(1);
+				} while(gardenLobbyArea.contains(getMyPlayer().getLocation()));
 			} else {
-				walking.walkTileMM(objects.getNearest(autumnGateObjectID).getLocation());
-				return random(2600, 3000);
-			}
-		} else if(autumnSqirkTree.contains(getMyPlayer().getLocation())) {
-			if(objects.getNearest(autumnSqirkTreeObject) != null) {
-				objects.getNearest(autumnSqirkTreeObject).doClick();
-				return random(2300, 2600);
+				//bank
 			}
 		} else {
-			nowPlaying = autumnGarden.getCurrentAct();
-			
-			if(nowPlaying != null) {
-				if(nowPlaying.actor.isActorAtStart()) {
-					hoverMouseOverTile(nowPlaying.actor.actorEndTile);
-					if(nowPlaying.isSafeForActorToMove()) {
-						walking.walkTileOnScreen(nowPlaying.actor.actorEndTile);
+			if(gardenLobbyArea.contains(getMyPlayer().getLocation())) {
+				if(objects.getNearest(autumnGateObjectID).isOnScreen()) {
+					objects.getNearest(autumnGateObjectID).doClick();
+					return random(2600, 3000);
+				} else {
+					walking.walkTileMM(objects.getNearest(autumnGateObjectID).getLocation());
+					return random(2600, 3000);
+				}
+			} else if(autumnSqirkTree.contains(getMyPlayer().getLocation())) {
+				if(objects.getNearest(autumnSqirkTreeObject) != null) {
+					havePickedAutumnFruit = false;
+					do {
+						hoverMouseOverTile(objects.getNearest(autumnSqirkTreeObject).getLocation());
+						objects.getNearest(autumnSqirkTreeObject).doClick();
 						return random(1700, 2500);
+					} while(!havePickedAutumnFruit);
+				}
+			} else {
+				nowPlaying = autumnGarden.getCurrentAct();
+				
+				if(nowPlaying != null) {
+					if(nowPlaying.actor.isActorAtStart()) {
+						hoverMouseOverTile(nowPlaying.actor.actorEndTile);
+						if(nowPlaying.isSafeForActorToMove()) {
+							walking.walkTileOnScreen(nowPlaying.actor.actorEndTile);
+							return random(1700, 2500);
+						}
 					}
 				}
 			}
 		}
 		return 1;
+	}
+	
+	@Override
+	public void messageReceived(MessageEvent e) {
+		if(e.getMessage().contains("emanating"))
+			havePickedAutumnFruit = true;
 	}
 	
 	public void hoverMouseOverTile(RSTile tile) {
